@@ -85,11 +85,18 @@ function handleCameraBtnClick() {
 
 async function handleCameraChange() {
     await getMedia(camerasSelect.value);
+    if(myPeerConnection) {
+        const videoTrack = myStream.getVideoTracks()[0];
+        const videoSender = myPeerConnection
+            .getSenders()
+            .find(sender=>sender.track.kind === 'video');
+        await videoSender.replaceTrack(videoTrack);
+    }
 }
 
 muteBtn.addEventListener("click", handleMuteBtnClick);
 cameraBtn.addEventListener("click", handleCameraBtnClick);
-camerasSelect.addEventListener("input", handleCameraChange);
+camerasSelect.addEventListener("change", handleCameraChange);
 
 // Welcome, Form (join a room )
 
@@ -142,9 +149,33 @@ socket.on("ice", async (ice) => {
 
 // RTC code
 function makeConnection(){
-    myPeerConnection = new RTCPeerConnection();
+    myPeerConnection = new RTCPeerConnection({
+        iceServers: [{
+            urls: [
+                "stun:stun.l.google.com:19302",
+                "stun:stun1.l.google.com:19302",
+                "stun:stun2.l.google.com:19302",
+                "stun:stun3.l.google.com:19302",
+                "stun:stun4.l.google.com:19302",
+            ]
+        }]
+        // iceServers: [{
+        //     urls: [ "stun:hk-turn1.xirsys.com" ]
+        // }, {
+        //     username: "s91XRMPFa4xJEuWfvTSSHsW2-kNJXlx_aAACyBJBZ1EQsUjJM-O6_FbDWWp2XzHbAAAAAGYSMZh1bnRpbDc2NTg=",
+        //     credential: "385dab6a-f4a1-11ee-8053-0242ac120004",
+        //     urls: [
+        //         "turn:hk-turn1.xirsys.com:80?transport=udp",
+        //         "turn:hk-turn1.xirsys.com:3478?transport=udp",
+        //         "turn:hk-turn1.xirsys.com:80?transport=tcp",
+        //         "turn:hk-turn1.xirsys.com:3478?transport=tcp",
+        //         "turns:hk-turn1.xirsys.com:443?transport=tcp",
+        //         "turns:hk-turn1.xirsys.com:5349?transport=tcp"
+        //     ]
+        // }]
+    });
     myPeerConnection.addEventListener("icecandidate", handleIce);
-    myPeerConnection.addEventListener("addstream", handleAddStream)
+    myPeerConnection.addEventListener("addstream", handleAddStream);
     myStream
         .getTracks()
         .forEach(track => myPeerConnection.addTrack(track, myStream));
@@ -156,9 +187,9 @@ function handleIce(data) {
 }
 
 function handleAddStream(data) {
-    console.log("got an stream from my peer");
-    console.log("Peer's Stream", data.stream);
-    console.log("My stream", myStream);
+    // console.log("got an stream from my peer");
+    // console.log("Peer's Stream", data.stream);
+    // console.log("My stream", myStream);
     const peerFace = document.getElementById("peerFace");
     peerFace.srcObject = data.stream;
 }
